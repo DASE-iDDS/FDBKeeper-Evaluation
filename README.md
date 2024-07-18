@@ -1,4 +1,4 @@
-# Evaluation Scripts
+# FDBKeeper Evaluation Scripts
 
 Some scripts for setup benchmark enviroment for fdbkeeper.
 
