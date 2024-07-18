@@ -1,0 +1,19 @@
+continue_on_error: true
+generator:
+  setup:
+    node:
+    - name: "test"
+      node:
+      - repeat: 100000
+        name:
+          random_string:
+            size: 10
+        data:
+          random_string:
+            size:
+              min_value: 100
+              max_value: 300
+  requests:
+    get:
+      path:
+        children_of: /test

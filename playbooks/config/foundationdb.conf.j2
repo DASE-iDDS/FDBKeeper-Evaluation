@@ -1,0 +1,52 @@
+## foundationdb.conf
+##
+## Configuration file for FoundationDB server processes
+## Full documentation is available at
+## https://apple.github.io/foundationdb/configuration.html#the-configuration-file
+
+[fdbmonitor]
+user = foundationdb
+group = foundationdb
+
+[general]
+restart-delay = 60
+## by default, restart-backoff = restart-delay-reset-interval = restart-delay
+# initial-restart-delay = 0
+# restart-backoff = 60
+# restart-delay-reset-interval = 60
+cluster-file = /etc/foundationdb/fdb.cluster
+# delete-envvars =
+# kill-on-configuration-change = true
+
+## Default parameters for individual fdbserver processes
+[fdbserver]
+command = /usr/sbin/fdbserver
+public-address = auto:$ID
+listen-address = public
+datadir = {{ fdb_data_dir }}/$ID
+logdir = /var/log/foundationdb
+# logsize = 10MiB
+# maxlogssize = 100MiB
+# machine-id =
+# datacenter-id =
+# class = 
+# memory = 8GiB
+# storage-memory = 1GiB
+# cache-memory = 2GiB
+# metrics-cluster =
+# metrics-prefix =
+knob_min_shard_bytes = 40000
+knob_shard_bytes_per_sqrt_bytes = 0
+
+{% set process_id = 4500 %}
+{% if fdb_coordinator %}
+[fdbserver.{{ process_id }}]
+class = coordinator
+{% set process_id = process_id + 1 %}
+{% endif %}
+
+{% for class in fdb_procs %}
+[fdbserver.{{ process_id + loop.index - 1 }}]
+class = {{ class }}
+
+{% endfor %}

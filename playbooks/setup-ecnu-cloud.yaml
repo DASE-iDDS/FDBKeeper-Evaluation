@@ -1,0 +1,92 @@
+- hosts:
+  - clients
+  - servers
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  tasks:
+
+  # Prepare ssh
+  - name: Upload public key to all nodes
+    ansible.posix.authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ lookup('ansible.builtin.pipe', 'ssh-add -L || cat ~/.ssh/id_rsa.pub') }}"
+
+  # Prepare bench disk
+  - name: Prepare bench disk
+    block:
+    - name: Create bench data dir
+      file:
+        state: directory
+        path: "{{ bench_data_dir }}"
+        mode: 0755
+    - name: Unmount {{ bench_disk }}
+      ansible.posix.mount:
+        path: "{{item}}"
+        state: absent
+      loop:
+      - /data # By default, ecnu cloud will mount the disk in /data.
+      - "{{ bench_data_dir }}"
+      when: bench_disk is defined
+    - name: Create ext4 on {{ bench_disk }}
+      community.general.filesystem:
+        fstype: ext4
+        dev: "{{ bench_disk }}"
+        force: true
+      when: bench_disk is defined
+    - name: Mount {{ bench_disk }} on {{ bench_data_dir }}
+      ansible.posix.mount:
+        src: "{{ bench_disk }}"
+        path: "{{ bench_data_dir }}"
+        fstype: ext4
+        opts: defaults,noatime,discard
+        state: mounted
+      when: bench_disk is defined
+    # Setup ssd benchmark tools
+    - name: Setup ssd benchmark depends
+      ansible.builtin.apt:
+        name: fio
+        state: present
+        update_cache: true
+        cache_valid_time: 86400
+    - name: Setup ssd benchmark
+      copy:
+        src: "../utils/bench-ssd.sh"
+        dest: "{{ bench_data_dir }}/bench-ssd.sh"
+        mode: "0755"
+    when: inventory_hostname in groups.servers
+
+  # Setup prometheus
+  - name: Setup prometheus node exporter depends
+    ansible.builtin.apt:
+      name: python3-passlib
+      state: present
+      update_cache: true
+      cache_valid_time: 86400
+    tags: [node_exporter]
+  - name: Setup prometheus node exporter
+    import_role: 
+      name: prometheus.prometheus.node_exporter
+    tags: [node_exporter]
+  - name: Export internal ip address to node exporter
+    copy:
+      dest: /var/lib/node_exporter/internal_ip.prom
+      content: |
+        # TYPE node_internal_ipv4 gauge
+        node_internal_ipv4{address="{{ internal_ipv4 }}"} 1
+    tags: [node_exporter]
+  - name: Setup prometheus push gateway
+    import_role: 
+      name: prometheus.prometheus.pushgateway
+    tags: [pushgateway]
+    when: inventory_hostname in groups.clients
+  - name: Generate scrape config
+    template:
+      src: "{{ playbook_dir }}/config/prom_file_sd.yaml.j2"
+      dest: "{{ playbook_dir }}/../docker/prom_file_sd.yml"
+      mode: 0666
+    tags: [prom_file_sd]
+    delegate_to: localhost
+    run_once: true
+    become: false
+

@@ -1,0 +1,9 @@
+[Unit]
+Description=Export fdb metrics to prometheus
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/fdb-prometheus-exporter.py /var/lib/node_exporter/fdb.prom
+KillSignal=SIGINT
+Restart=always
+RestartSec=5s

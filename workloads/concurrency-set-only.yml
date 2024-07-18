@@ -1,0 +1,19 @@
+generator:
+  setup:
+    node:
+    - name: "test"
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+        data:
+          random_string:
+            size: 1024
+  requests:
+    set:
+      path:
+        children_of: "/test"
+      data:
+        random_string:
+          size: 1024

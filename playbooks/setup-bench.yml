@@ -1,0 +1,70 @@
+- hosts: [clients]
+  vars:
+    debug_bench: false
+    local_workloads_dir: "{{ playbook_dir }}/../workloads"
+  force_handlers: true
+  tasks:
+  - tempfile:
+      state: directory
+    register: binary_dir
+    delegate_to: localhost
+    notify: [Delete binary_dir]
+    run_once: true
+  - name: Produce stripped executables and libraries
+    shell: |
+      set -e
+      cd {{ binary_dir.path }}
+      {% if debug_bench | bool %}
+      cp "{{ keeper_bench_path }}" keeper-bench
+      {% else %}
+      strip -so keeper-bench "{{ keeper_bench_path }}"
+      {% endif %}
+    run_once: true
+    delegate_to: localhost
+  - name: Sync bench binaries
+    ansible.posix.synchronize:
+      src: "{{ binary_dir.path }}/{{ item }}"
+      dest: "{{ item }}"
+      use_ssh_args: ""
+      checksum: true
+      times: false
+    loop:
+      - keeper-bench
+  - name: Create keeper-bench config dir
+    file:
+      state: directory
+      path: "{{ keeper_bench_conf_dir }}/conf.d"
+      mode: 0755
+    become: true
+  - name: Config output for keeper bench
+    copy:
+      dest: "{{ keeper_bench_conf_dir }}/conf.d/output.yaml"
+      content: |
+        output:
+          stdout: true
+          prometheus:
+            endpoint: http://127.0.0.1:9030
+      mode: 0644
+    become: true
+  - name: Generate workloads from template
+    import_tasks: ../workloads/templates/generate-task.yml
+    tags: [generate-workloads]
+  - name: Upload workloads
+    ansible.posix.synchronize:
+      src: "{{ local_workloads_dir }}/"
+      dest: "{{ keeper_bench_conf_dir }}"
+      delete: true
+      rsync_opts:
+        - --exclude=conf.d
+        - --exclude=templates
+    become: true
+  handlers:
+  - name: "Delete binary_dir"
+    file:
+      path: "{{ binary_dir.path }}"
+      state: absent
+    delegate_to: localhost
+    run_once: true
+
+
+  

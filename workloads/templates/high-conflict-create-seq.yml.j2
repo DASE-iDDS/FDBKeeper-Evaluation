@@ -1,0 +1,25 @@
+{% set concurrency = item[2] %}
+{% set bucket = item[3] %}
+continue_on_error: true
+fdbkeeper_disable_locker_for_requests: true
+concurrency: {{ concurrency }}
+generator:
+  setup:
+    node:
+    - name: "test"
+      node:
+      - repeat: {{ bucket }}
+        name:
+          random_string:
+            size: 10
+  requests:
+    create:
+      path:
+        children_of: /test
+      name_length: 10
+      seq: true
+      data:
+        random_string:
+          size:
+            min_value: 100
+            max_value: 500

@@ -1,0 +1,18 @@
+{% for host in groups.clients %}
+- targets:
+    - {{ hostvars[host].ansible_host }}:9030
+  labels:
+    instance: {{ host }}-pushgateway
+{% endfor %}
+{% for host in groups.servers + groups.clients %}
+- targets:
+    - {{ hostvars[host].ansible_host | default(hostvars[host].inventory_hostname) }}:9031
+  labels:
+    instance: {{ host }}
+{% endfor %}
+{% for host in groups.servers %}
+- targets:
+    - {{ hostvars[host].ansible_host | default(hostvars[host].inventory_hostname) }}:{{ hostvars[host].zookeeper_metricsprovider_httpport | default(7000) }}
+  labels:
+    instance: {{ host }}-zk
+{% endfor %}

@@ -1,0 +1,59 @@
+- name: Generate long name workloads
+  template:
+    src: ./long-name.yml.j2
+    dest: "{{ local_workloads_dir }}/long-name-{{ name_length }}.g.yml"
+  with_sequence: start=20 end=200 stride=30
+  loop_control:
+    loop_var: name_length
+  delegate_to: localhost
+  run_once: true
+- name: Generate long name read workloads
+  template:
+    src: ./long-name-read.yml.j2
+    dest: "{{ local_workloads_dir }}/long-name-read-{{ name_length }}.g.yml"
+  with_sequence: start=20 end=200 stride=30
+  loop_control:
+    loop_var: name_length
+  delegate_to: localhost
+  run_once: true
+- name: Generate mix-rw workloads
+  template:
+    src: ./mix-rw.yml.j2
+    dest: "{{ local_workloads_dir }}/mix-rw-{{ read_percent }}.g.yml"
+  with_sequence: start=0 end=10
+  loop_control:
+    index_var: read_percent
+  delegate_to: localhost
+  run_once: true
+- name: Generate high conflict workloads
+  template:
+    src: ./high-conflict-{{ item[0] }}.yml.j2
+    dest: "{{ local_workloads_dir }}/high-conflict-{{ item[0] }}-{{ item[1] }}.g.yml"
+  with_nested:
+    - - create-seq
+      - create
+      - set
+    # Note: Conflict rate is tested by following python script
+    #   import random
+    #
+    #   def test(bucket_size=1000, client_size=100, loop=100):
+    #       conflict_request = 0
+    #       total_request = 0
+    #       for _l in range(0, loop):
+    #           buckets = [0] * bucket_size
+    #           for _c in range(0, client_size):
+    #               buckets[random.randint(0, bucket_size-1)] += 1
+    #           conflict_request += sum([x-1 if x > 0 else x for x in buckets])
+    #           total_request += client_size
+    #       return conflict_request / total_request
+    #
+    #   for size in [1, 20, 44, 87, 210, 4500]:
+    #       print(size, test(size, loop=1000))
+    - - [ 99, 100, 1]
+      - [ 80, 100, 20]
+      - [ 60, 100, 44]
+      - [ 40, 100, 87]
+      - [ 20, 100, 210]
+      - [  1, 100, 4500]
+  delegate_to: localhost
+  run_once: true

@@ -1,0 +1,7 @@
+generator:
+  requests:
+    fdb_getset:
+      get: true
+      keys_per_trx:
+        min_value: 5
+        max_value: 15

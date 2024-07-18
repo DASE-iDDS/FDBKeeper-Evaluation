@@ -1,0 +1,12 @@
+---
+- name: Restart ZooKeeper service
+  ansible.builtin.systemd:
+    name: zookeeper.service
+    state: restarted
+    daemon_reload: yes
+  when: zookeeper_restart
+
+- name: Reload firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded

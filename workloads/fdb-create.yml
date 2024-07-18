@@ -1,0 +1,15 @@
+continue_on_error: true
+generator:
+  requests:
+    fdb_create:
+      key:
+        random_string:
+          size: 16
+      value:
+        random_string:
+          size:
+            min_value: 8
+            max_value: 16
+      keys_per_trx:
+        min_value: 5
+        max_value: 15

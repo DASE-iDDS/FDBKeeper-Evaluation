@@ -1,0 +1,75 @@
+{% set write_percent = 10 - read_percent -%}
+{% set create_percent = (write_percent * 10 / 3 * 2) | int -%}
+{% set set_percent = write_percent * 10 - create_percent -%}
+continue_on_error: true
+generator:
+  setup:
+    node:
+{% if read_percent > 0 %}
+    # 100M random data
+    - name: test_get
+      node:
+      - repeat: 100000
+        name:
+          random_string:
+            size: 10
+        data:
+          random_string:
+            size: 1024
+    - name: test_list
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+        node:
+        - repeat: 10
+          name:
+            random_string:
+              size: 10
+{% endif %}
+{% if write_percent > 0 %}
+    - name: test_set
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+    - name: test_create_remove
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+{% endif %}
+  requests:
+{% if read_percent > 0 %}
+    get:
+      path:
+        children_of: /test_get
+      weight: {{ read_percent * 9 }}
+    list:
+      path:
+        children_of: /test_list
+      weight: {{ read_percent }}
+{% endif %}
+{% if write_percent > 0 %}
+    set:
+      path:
+        children_of: /test_set
+      data:
+        random_string:
+          size: 1024
+      weight: {{ set_percent }}
+    create:
+      path:
+        children_of: /test_create_remove
+      name_length: 10
+      remove_factor: 0.5
+      data:
+        random_string:
+          size:
+            min_value: 100
+            max_value: 500
+      weight: {{ create_percent }}
+{% endif %}

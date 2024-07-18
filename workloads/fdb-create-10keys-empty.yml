@@ -1,0 +1,9 @@
+continue_on_error: true
+generator:
+  requests:
+    fdb_create:
+      key:
+        random_string:
+          size: 16
+      value: ''
+      keys_per_trx: 10

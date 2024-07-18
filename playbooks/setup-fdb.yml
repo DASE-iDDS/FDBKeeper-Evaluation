@@ -1,0 +1,149 @@
+# FoundationDB Setup Playbook
+#
+# Available Tags:
+# - install-deb # install fdb binary
+# - disable-fdb # disable fdb service
+
+- hosts:
+  - servers
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  vars:
+    fdb_version: &fdb-version 7.1.27
+    fdb_data_dir: "{{bench_data_dir}}/foundationdb"
+  tasks:
+  - name: Stop foundationdb, if running
+    systemd:
+      name: foundationdb
+      state: stopped
+      enabled: false
+    ignore_errors: true
+    tags: [disable-fdb]
+  - name: Remove conflict foundationdb server
+    shell: | 
+      set -e
+      installed_version=$(dpkg-query -W -f "\${Version}" foundationdb-server || true 2> /dev/null)
+      if [ -n "$installed_version" ] && [ "$installed_version" != "{{ fdb_version }}" ]; then
+        apt-get remove -y foundationdb-server >&2
+        echo "changed"
+      fi
+    register: remove_conflict_fdb_server
+    changed_when: "'changed' in remove_conflict_fdb_server.stdout"
+    tags: [install-deb]
+  - &prepare-cluster-file
+    name: Prepare cluster file
+    block:
+    - name: Find FDB coordinators
+      set_fact:
+        fdb_coordinators_hosts: "{{ groups['servers'] | map('extract', hostvars) | list | selectattr('fdb_coordinator', 'eq', true) | map(attribute='internal_ipv4') | product([':4500']) | map('join') | join(',') }}"
+      failed_when: fdb_coordinators_hosts == ''
+    - name: Create FDB etc dir
+      file:
+        state: directory
+        path: /etc/foundationdb
+        mode: 0777
+    - name: Create FDB Cluster file
+      copy: &copy-cluster-file
+        dest: "/etc/foundationdb/fdb.cluster"
+        content: |
+          bench:benchinit@{{ fdb_coordinators_hosts }}
+  - name: Create FDB configure
+    template:
+      src: config/foundationdb.conf.j2
+      dest: /etc/foundationdb/foundationdb.conf
+      mode: 0777
+  - name: Clear foundationdb data
+    file:
+      state: absent
+      path: "{{ fdb_data_dir }}"
+      mode: 0777
+    tags: [disable-fdb]
+  - name: Create foundationdb data dir
+    file:
+      state: directory
+      path: "{{ fdb_data_dir }}"
+      mode: 0777
+  - &install-client
+    name: Install foundationdb client
+    apt:
+      deb: https://github.com/apple/foundationdb/releases/download/{{ fdb_version }}/foundationdb-clients_{{ fdb_version }}-1_amd64.deb
+      allow_downgrade: true
+    retries: 3
+    tags: [install-deb]
+  - name: Install foundationdb server
+    apt:
+      deb: https://github.com/apple/foundationdb/releases/download/{{ fdb_version }}/foundationdb-server_{{ fdb_version }}-1_amd64.deb
+      allow_downgrade: true
+    retries: 3
+    tags: [install-deb]
+  - name: Start foundationdb
+    systemd:
+      name: foundationdb
+      state: started
+      enabled: true
+  - name: Configure new database
+    shell: |
+      #! /bin/sh
+
+      fdbcli --exec '{{ fdb_init_command }}'
+    run_once: true
+
+- hosts:
+  - clients
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  vars:
+    fdb_version: *fdb-version
+  tasks:
+  - *prepare-cluster-file
+  - *install-client
+
+  # Setup keeper bench configs
+  - name: Create keeper-bench config dir
+    file:
+      state: directory
+      path: "{{ keeper_bench_conf_dir }}/conf.d"
+      mode: 0755
+  - name: Generate keeper-bench connection config
+    copy:
+      dest: "{{ keeper_bench_conf_dir }}/conf.d/impl.yaml"
+      content: |
+        connections:
+          connections:
+          - host: fdb://
+        output:
+          prometheus:
+            labels:
+              keeper_impl: fdbkeeper
+
+# Install FDB prometheus exporter on first client
+- hosts:
+  - clients[0]
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  tasks:
+  - name: Setup fdb prometheus exporter script
+    copy:
+      dest: /usr/local/bin/fdb-prometheus-exporter.py
+      src: "{{ playbook_dir }}/../utils/fdb-prometheus-exporter.py"
+      mode: 0755
+    tags: [install-prometheus-exporter]
+    notify:
+    - Enable and start fdb prometheus exporter
+  - name: Setup fdb prometheus exporter systemd unit
+    copy:
+      dest: /etc/systemd/system/
+      src: config/fdb-prometheus-exporter.service
+    tags: [install-prometheus-exporter]
+
+  handlers:
+  - name: Enable and start fdb prometheus exporter
+    systemd:
+      name: fdb-prometheus-exporter
+      state: restarted
+      enabled: true
+    tags: [install-prometheus-exporter]
+    

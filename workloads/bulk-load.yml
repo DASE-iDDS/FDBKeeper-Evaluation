@@ -1,0 +1,19 @@
+continue_on_error: true
+generator:
+  setup:
+    node:
+    - name: "test"
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+  requests:
+    create:
+      path:
+        children_of: /test
+      name_length: 10
+      # remove_factor: 0.5
+      data:
+        random_string:
+          size: 128

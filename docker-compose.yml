@@ -1,0 +1,23 @@
+services:
+    prometheus:
+      image: prom/prometheus:v2.49.1
+      restart: always
+      volumes:
+        - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+        - prometheus-data:/prometheus
+        - ./docker/prom_file_sd.yml:/etc/prometheus/keeper-bench.yaml
+      network_mode: bridge
+    grafana:
+      image: grafana/grafana-oss:10.3.1
+      restart: always
+      ports:
+        - 9033:3000 
+      links:
+        - prometheus
+      volumes:
+        - grafana-data:/var/lib/grafana
+        - ./docker/grafana.ini:/etc/grafana/grafana.ini
+      network_mode: bridge
+volumes:
+  prometheus-data:
+  grafana-data:

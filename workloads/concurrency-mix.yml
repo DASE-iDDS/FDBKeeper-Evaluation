@@ -1,0 +1,47 @@
+continue_on_error: true
+generator:
+  setup:
+    node:
+    # 100M random data
+    - name: test
+      node:
+      - repeat: 100000
+        name:
+          random_string:
+            size: 10
+        data:
+          random_string:
+            size: 1024
+    - name: test2
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: 10
+  requests:
+    get:
+      path:
+        children_of: /test
+      weight: 80
+    list:
+      path:
+        children_of: /test2
+      weight: 10
+    set:
+      path:
+        children_of: /test
+      data:
+        random_string:
+          size: 1024
+      weight: 5
+    create:
+      path:
+        children_of: /test2
+      name_length: 10
+      remove_factor: 0.5
+      data:
+        random_string:
+          size:
+            min_value: 100
+            max_value: 500
+      weight: 5

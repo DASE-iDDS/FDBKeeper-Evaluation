@@ -1,0 +1,10 @@
+output:
+  stdout: true
+microbench:
+  type: clean-client
+  clients: 20
+  nodes: 100
+  batch: 10
+  name:
+    random_string:
+      size: 10

@@ -1,0 +1,32 @@
+generator:
+  setup:
+    node:
+    - name: test
+      node:
+      - repeat: 100000
+        name:
+          random_string:
+            size: {{ (name_length | int) - 5 }}
+        data:
+          random_string:
+            size: 1024
+    - name: tes2
+      node:
+      - repeat: 1000
+        name:
+          random_string:
+            size: {{ (name_length | int) - 10 }}
+        node:
+        - repeat: 10
+          name:
+            random_string:
+              size: 9
+  requests:
+    get:
+      path:
+        children_of: /test
+      weight: 9
+    list:
+      path:
+        children_of: /tes2
+      weight: 1

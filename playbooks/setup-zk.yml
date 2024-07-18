@@ -1,0 +1,71 @@
+# ZooKeeper Setup Playbook
+#
+# Available tags:
+# - disable-zk # disable zookeeper service
+
+- hosts:
+  - servers
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  vars:
+    zookeeper_version: 3.9.1
+    zookeeper_max_client_cnxns: 0
+    zookeeper_data_dir: "{{ bench_data_dir }}/zookeeper"
+    zookeeper_data_log_dir: "{{ bench_data_dir }}/zookeeper"
+  tasks:
+  - name: Stop zookeeper, if running
+    systemd:
+      name: zookeeper
+      state: stopped
+      enabled: false
+    ignore_errors: true
+    tags: [disable-zk]
+  - name: Clear zookeeper data
+    file:
+      state: absent
+      path: "{{ zookeeper_data_dir }}/version-2"
+    tags: [disable-zk]
+  - name: Setup java environment
+    apt:
+      name: openjdk-8-jdk
+  - name: Set zookeeper id
+    set_fact:
+      zookeeper_id: "{{ lookup('ansible.utils.index_of', ansible_play_hosts, 'eq', inventory_hostname) }}"
+  - name: Setup zookeeper
+    import_role: 
+      name: sleighzy.zookeeper
+    vars:
+      zookeeper_servers: "{{ ansible_play_hosts }}"
+  - name: Install zkCli.sh to system
+    copy:
+      dest: /usr/local/bin/zkCli.sh
+      content: |
+        #! /bin/sh
+        /usr/share/zookeeper/bin/zkCli.sh "$@"
+      mode: 0755
+- hosts:
+  - clients
+  any_errors_fatal: true 
+  become: true
+  become_user: root
+  # Setup keeper bench configs
+  tasks:
+  - name: Create keeper-bench config dir
+    file:
+      state: directory
+      path: "{{ keeper_bench_conf_dir }}/conf.d"
+      mode: 0755
+  - name: Generate keeper-bench connection config
+    copy:
+      dest: "{{ keeper_bench_conf_dir }}/conf.d/impl.yaml"
+      content: |
+        connections:
+          connections:
+          {% for host in groups.servers %}
+          - host: {{hostvars[host].internal_ipv4}}:2181
+          {% endfor %}
+        output:
+          prometheus:
+            labels:
+              keeper_impl: zookeeper

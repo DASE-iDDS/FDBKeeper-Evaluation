@@ -1,0 +1,20 @@
+#! /bin/bash
+
+set -e
+SCRIPT_ROOT="$(realpath "$(dirname "$0")")"
+
+host=${1:?Usage: $0 host cmd}
+shift
+ssh_args=$(cd "$SCRIPT_ROOT/.." && ansible "${host}" -m debug -a "msg='{{ansible_user}}@{{public_ipv4}}'" | sed -nE 's/^ *"msg": "(.*)"$/\1/p')
+if [ -z "$ssh_args" ]; then
+    echo "Cannot get ssh args" >&2
+    exit 1
+fi
+
+if [ "$#" = 0 ]; then
+    set -x
+    exec ssh $ssh_args
+else
+    set -x
+    exec ssh $ssh_args $(printf " %q" "$@")
+fi
