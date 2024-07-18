@@ -13,7 +13,7 @@ pipenv install
 ### Setup Hosts
 
 1. Prepare at least 1 host for client, at least 1 host for foundationdb or zookeeper service.
-2. Server requirements (See also [setup-ecnu-cloud playbook](./playbook/setup-ecnu-cloud.yml))
+2. Server requirements
    1. Ubuntu 22.04 is recommended
    2. Mount ext4 fs on /var/lib/keeper-bench with options: `defaults,noatime,discard`
    3. Setup prometheus node exporter with textfile collector for `/var/lib/node_exporter`
