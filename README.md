@@ -1,3 +1,4 @@
+<meta name="robots" content="noindex">
 # FDBKeeper Evaluation Scripts
 
 Some scripts for setup benchmark enviroment for fdbkeeper.
