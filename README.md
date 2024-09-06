@@ -1,4 +1,4 @@
-# FDBKeeper Evaluation Scripts
+# FDBKeeper Experimental Evaluation
 
 This is the experimental evaluation code repo for the paper: **Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases: A Design Space Exploration**.
 
