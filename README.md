@@ -1,5 +1,12 @@
 # FDBKeeper Experimental Evaluation
 
+---
+
+![FDBKeeper Logo](https://github.com/DASE-iDDS/FDBKeeper-Evaluation/blob/main/logo.png)
+
+---
+
+
 This is the experimental evaluation code repo for the paper: **Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases: A Design Space Exploration**.
 
 Some scripts for setting up a benchmark environment for FDBKeeper.
@@ -62,3 +69,7 @@ Here is a [dashboad example](./dashboard-example.json)
 ### Deploy Benchmark Clients and Services
 
 See [Makefile](./Makefile).
+
+## Contact
+
+If there are any questions, please feel free to propose new features by opening an issue or contact with the author: Jun-Peng Zhu(zjp.dase@stu.ecnu.edu.cn). Enjoy the code.
