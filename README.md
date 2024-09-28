@@ -7,7 +7,7 @@
 ---
 
 
-This is the experimental evaluation code repo for the paper: **Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases: A Design Space Exploration**.
+This is the experimental evaluation code repo for the paper "**Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases: A Design Space Exploration**".
 
 Some scripts for setting up a benchmark environment for FDBKeeper.
 
