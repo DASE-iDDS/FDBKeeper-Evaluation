@@ -7,7 +7,7 @@
 ---
 
 
-This is the experimental evaluation code repo for the paper "**Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases: A Design Space Exploration**". The source code of FDBKeeper is available at [FDBKeeper](https://github.com/DASE-iDDS/FDBKeeper).
+This is the experimental evaluation code repo for the paper "**FDBKeeper: Enabling Scalable Coordination Services for Metadata Management using Distributed Key-Value Databases**". The source code of FDBKeeper is available at [FDBKeeper](https://github.com/DASE-iDDS/FDBKeeper).
 
 Some scripts for setting up a benchmark environment for FDBKeeper.
 
